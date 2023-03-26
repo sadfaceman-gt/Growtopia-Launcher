@@ -31,8 +31,11 @@ If WinExist("ahk_exe AutoHotkey64.exe ahk_class AutoHotkeyGUI") or WinExist("ahk
 	MsgBox "Close Growtopia and Growtopia Launcher first!", "Growtopia Launcher Installer", "OK T5"
 	ExitApp
 }
-If FileExist(GTDir . "\.launcher")
+If FileExist(GTDir . "\.launcher"){
+	If FileExist(GTDir . "\.launcher\Bin\g")
+		FileMove GTDir . "\.launcher\Bin\g", A_WorkingDir . "\data\Launcher\Bin\g", 1
 	DirDelete GTDir . "\.launcher"
+}
 If FileExist(GTDir . "\Launcher"){
     Upgrade()
     MsgBox "Successfully updated Growtopia Launcher", "Growtopia Launcher Installer", "OK T5"
@@ -71,6 +74,8 @@ Upgrade(){
 Install(){
 	Global
     DirCopy A_WorkingDir . "\data", GTDir, 1
+	If FileExist(A_WorkingDir . "\data\Launcher\Bin\g")
+		FileDelete A_WorkingDir . "\data\Launcher\Bin\g"
     Loop Files GTDir . "\*.ahk" {
         If InStr(A_LoopFileName, "Growtopia Launcher")
             ExeName := A_LoopFileName
