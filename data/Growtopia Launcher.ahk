@@ -12,7 +12,7 @@
 ;    |_______ (____  /____/|___|  /\___  >___|  /\___  >__|        ;
 ;            \/    \/           \/     \/     \/     \/            ;
 ;                                                                  ;
-Global                     Version := 1.1                          ;
+Global                     Version := 1.2                          ;
 ; ---------------------------------------------------------------- ;
 
 ; -------------------- Initialization -------------------- ;
@@ -1909,6 +1909,8 @@ DownloadFile(URL, FTarget){
 	SetTimer DLProgQuery, 0
 	FileDelete FDir . "\Downloader.exe"
 	DProg.Destroy()
+	If !FileExist(Target)
+		Return 1
 	If DLInterrupt {
 		DLInterrupt := False
 		FileDelete Target
