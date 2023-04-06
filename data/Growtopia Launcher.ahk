@@ -16,7 +16,6 @@ Global                     Version := 1.1                          ;
 ; ---------------------------------------------------------------- ;
 
 ; -------------------- Initialization -------------------- ;
-#Requires AutoHotkey v2-
 SendMode "Input"
 SetWorkingDir A_ScriptDir
 #SingleInstance Force
@@ -29,7 +28,7 @@ Global EmbedURL := ["file://" . StrReplace(StrReplace(A_WorkingDir, " ", "%20"),
 					"file://" . StrReplace(StrReplace(A_WorkingDir, " ", "%20"), "\", "/") . "/Launcher/Page/default.html"]
 Global LauncherVersion := Format("{:0.1f}", Version)
 Global GTVersion := Format("{:0.2f}", 0.00)
-Global SettingsCount := 4
+Global SettingsCount := 5
 Global SettingsList := Array()
 Global GameButtonMode := "Launch"
 Global GameButtonState := "Off"
@@ -38,6 +37,8 @@ SettingsList.Length := SettingsCount
 Global DLInterrupt := False
 Global DLProgress := False
 Global COLLAPSE_THIS := True
+Global OnlineUser := -2
+Global OnlineUserOutdated := False
 
 ; -------------------- Pre-loaded libraries -------------------- ;
 If COLLAPSE_THIS Or True {
@@ -1382,31 +1383,12 @@ If !A_IsAdmin {
 }
 If FileExist(A_WorkingDir . "\Launcher\autostart")
 	FileDelete A_WorkingDir . "\Launcher\autostart"
-GuiLoading()
 LoadSettings()
-GetGTVer()
-Loading.Destroy()
 GuiMain()
 GetPlayerCount()
 Return
 
 ; -------------------- Gui Functions -------------------- ;
-
-GuiLoading(){
-	Global
-	Loading := Gui("", "Growtopia Launcher")
-	Loading.SetFont("c00FF00 s12", "Consolas")
-	Loading.BackColor := "000000"
-	Loading.Add("Text", "x10 y10 w300 Center", "Loading launcher...")
-	Loading.Show("Center")
-	Return
-}
-
-Loading_Close(){
-	Global
-	Loading.Restore()
-	Return
-}
 
 GuiMain(){
 	Global
@@ -1416,7 +1398,7 @@ GuiMain(){
 	Main.Add("Picture", "x30 y20 w400 h200 BackgroundTrans", A_WorkingDir . "\Launcher\Images\logo_1.png")
 	Main.SetFont("cFFFFFF s16", "Century Gothic")
 	VerText := Main.Add("Text", "x30 y200 w400 BackgroundTrans Center", "`n")
-	ServerText := Main.Add("Text", "x501 y602 w390 BackgroundTrans Center", "Loading player data...")
+	ServerText := Main.Add("Text", "x401 y602 w590 BackgroundTrans Center", "Loading player data...")
 	GameButton := Main.Add("Picture", "x501 y642 BackgroundTrans", A_WorkingDir . "\Launcher\Images\button_launch_off.png")
 	Main.Add("Picture", "x940 y0 BackgroundTrans",  A_WorkingDir . "\Launcher\Images\sidebar.png")
 	Main.Add("Picture", "x958 y26 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_forums.png").OnEvent("Click", FrLink)
@@ -1426,7 +1408,6 @@ GuiMain(){
 	Main.Add("Picture", "x958 y354 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_discord.png").OnEvent("Click", DcLink)
 	Main.Add("Picture", "x958 y436 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_github.png").OnEvent("Click", GhLink)
 	Main.Add("Picture", "x958 y694 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_settings.png").OnEvent("Click", GuiSet)
-	SetGameButton()
 	GetSelFile()
 	SelImg.Value := A_WorkingDir . "\Launcher\Images\menu_" . SelFile . ".png"
 	MainDisable()
@@ -1435,13 +1416,18 @@ GuiMain(){
 	EmbedView_TL.CoreWebView2.Navigate(EmbedURL[SettingsList[3]])
 	GameButton.OnEvent("Click", GameButtonClick)
 	Main.OnEvent("Close", MainClose)
+	GetGTVer_Main()
 	MainEnable()
 	Return
 }
 MainClose(*){
 	Global
-	RunWait A_ComSpec . " /c taskkill /pid " . WinGetPid("ahk_exe msedgewebview2.exe"), , "Hide"
-	ExitApp 0
+	If SettingsList[1] {
+		RunWait A_ComSpec . " /c taskkill /pid " . WinGetPid("ahk_exe msedgewebview2.exe"), , "Hide"
+		ExitApp 0
+	}
+	Main.Minimize()
+	Return 1
 }
 GameButtonClick(*){
 	Global
@@ -1452,6 +1438,8 @@ GameButtonClick(*){
 		UpdateGT()
 	Else If(StrLower(GameButtonMode) = "launch")
 		LaunchGT()
+	Else If(StrLower(GameButtonMode) = "check")
+		GetGTVer_Main()
 	MainEnable()
 	Return
 }
@@ -1498,23 +1486,28 @@ GuiSet(*){
 	Set := Gui("", "Growtopia Launcher")
 	Set.SetFont("c00FF00 s12", "Consolas")
 	Set.BackColor := "000000"
-	GSet2 := Set.Add("Checkbox", "x10 y10 w500", "Hide launcher")
+	GSet1 := Set.Add("Checkbox", "x10 y10 w500", "Quit launcher when closed")
+	GSet1.Value := SettingsList[1]
+	GSet2 := Set.Add("Checkbox", "x10 y40 w500", "Hide launcher when launching")
 	GSet2.Value := SettingsList[2]
-	Set.Add("Text", "x10 y40", "Timeline destination")
-	GSet3 := Set.Add("DropDownList", "x10 y60 Choose" . SettingsList[3], ["Twitter", "Forums", "Instagram", "YouTube", "None"])
-	Set.Add("Text", "x10 y100", "Player counter update interval (in seconds)")
-	GSet4 := Set.Add("Slider", "x10 y120 Range15-60 Tooltip", SettingsList[4])
-	Set.Add("Button", "c000000 x160 y160 h32 w200", "Save and Exit").OnEvent("Click", GuiSetSubmit)
+	Set.Add("Text", "x10 y70", "Timeline destination")
+	GSet3 := Set.Add("DropDownList", "x10 y90 Choose" . SettingsList[3], ["Twitter", "Forums", "Instagram", "YouTube", "None"])
+	Set.Add("Text", "x10 y130", "Player counter update interval (in seconds)")
+	GSet4 := Set.Add("Slider", "x10 y150 Range15-60 Tooltip", SettingsList[4])
+	Set.Add("Text", "x10 y170", "Version check interval (in hours)")
+	GSet5 := Set.Add("Slider", "x10 y190 Range1-24 Tooltip", SettingsList[5])
+	Set.Add("Button", "c000000 x160 y230 h32 w200", "Save and Exit").OnEvent("Click", GuiSetSubmit)
 	Set.OnEvent("Close", GuiSetSubmit)
 	Set.Show("Center")
 	Return
 }
 GuiSetSubmit(*){
 	Global
-	SettingsList[1] := -1
+	SettingsList[1] := GSet1.Value
 	SettingsList[2] := GSet2.Value
 	SettingsList[3] := GSet3.Value
 	SettingsList[4] := GSet4.Value
+	SettingsList[5] := GSet5.Value
 	SettingsListCheck()
 	GenSettingsFile()
 	Set.Destroy()
@@ -1529,7 +1522,17 @@ GetPlayerCount(){
 	Global
 	If FileExist(A_WorkingDir . "\Launcher\Bin\player")
 		FileDelete A_WorkingDir . "\Launcher\Bin\player"
-	Download "https://growtopiagame.com/detail", A_WorkingDir . "\Launcher\Bin\player"
+	Try
+		Download "https://growtopiagame.com/detail", A_WorkingDir . "\Launcher\Bin\player"
+	Catch {
+		ServerText.Opt("cFF8F1F")
+		If OnlineUser < -1
+			ServerText.Text := "Failed to get player count"
+		Else If not OnlineUserOutdated 
+			ServerText.Text := ServerText.Text . FormatTime(, " (HH:mm)")
+		OnlineUserOutdated := True
+		Return
+	}
 	GPCFrom := StrSplit(FileRead(A_WorkingDir . "\Launcher\Bin\player"), ",")
 	Loop GPCFrom.Length {
 		If !InStr(GPCFrom[A_Index], '"online_user"')
@@ -1545,6 +1548,7 @@ GetPlayerCount(){
 			ServerText.Opt("c1FFF1F")
 			ServerText.Text := "Server is up! • " . OnlineUser . " online"
 		}
+		OnlineUserOutdated := False
 		Break
 	}
 }
@@ -1679,8 +1683,10 @@ LaunchGT(){
 SetGameButton(){
 	Global
 	GameButton.Value := A_WorkingDir . "\Launcher\Images\button_" . StrLower(GameButtonMode) . "_" . StrLower(GameButtonState) . ".png"
-	If (StrLower(GameButtonMode) != "install")
+	If (StrLower(GameButtonMode) = "launch")
 		VerText.Text := Format("Launcher v{}`nGrowtopia v{}", LauncherVersion, GTVersion)
+	Else If (StrLower(GameButtonMode) = "update")
+		VerText.Text := Format("Launcher v{}`nA new update is available! ({})", LauncherVersion, GTVersion)
 	Else
 		VerText.Text := Format("Launcher v{}`n", LauncherVersion)
 	Return
@@ -1691,10 +1697,13 @@ LoadSettings(){
 	If !FileExist(A_WorkingDir . "\Launcher\Settings")
 		DefaultSettings()
 	SettingsFile := FileOpen(A_WorkingDir . "\Launcher\Settings", "r")
-	Loop SettingsCount {
-		SettingsFile.ReadLine()
-		SettingsList[A_Index] := Format("{:d}", SettingsFile.ReadLine())
-	}
+	Try {
+		Loop SettingsCount {
+			SettingsFile.ReadLine()
+			SettingsList[A_Index] := Format("{:d}", SettingsFile.ReadLine())
+		}
+	} Catch 
+		DefaultSettings()
 	SettingsFile.Close()
 	SettingsListCheck()
 	Return
@@ -1702,10 +1711,11 @@ LoadSettings(){
 
 DefaultSettings(){
 	Global
-	SettingsList[1] := -1
+	SettingsList[1] := 0
 	SettingsList[2] := 1
 	SettingsList[3] := 1
 	SettingsList[4] := 30
+	SettingsList[5] := 4
 	GenSettingsFile()
 	Return
 }
@@ -1714,20 +1724,22 @@ GenSettingsFile(){
 	Global
 	If FileExist(A_WorkingDir . "\Launcher\Settings")
 		FileDelete A_WorkingDir . "\Launcher\Settings"
-	FileAppend "-1`n-1`n", A_WorkingDir . "\Launcher\Settings"
+	FileAppend "Quit launcher`n" . SettingsList[1] . "`n", A_WorkingDir . "\Launcher\Settings"
 	FileAppend "Hide launcher`n" . SettingsList[2] . "`n", A_WorkingDir . "\Launcher\Settings"
 	FileAppend "Timeline destination`n" . SettingsList[3] . "`n", A_WorkingDir . "\Launcher\Settings"
 	FileAppend "Player counter update interval`n" . SettingsList[4] . "`n", A_WorkingDir . "\Launcher\Settings"
+	FileAppend "Version check interval`n" . SettingsList[5] . "`n", A_WorkingDir . "\Launcher\Settings"
 	Return
 }
 
 SettingsListCheck(){
 	Global
-	SettingsList[1] := -1
 	If (SettingsList[3] < 1) or (SettingsList[3] > EmbedURL.Length)
 		SettingsList[3] := 1
 	If (SettingsList[4] < 15) or (SettingsList[4] > 120)
 		SettingsList[4] := 30
+	If (SettingsList[5] < 1) or (SettingsList[4] > 24)
+		SettingsList[5] := 4
 	Return
 }
 
@@ -1764,8 +1776,9 @@ GetSelFile(){
 	Return
 }
 
-GetGTVer(){
+GetGTVer_Main(){
 	Global
+	VerText.Text := Format("Launcher v{}`nGetting version info...", LauncherVersion)
 	If !FileExist(A_WorkingDir . "\Growtopia.exe"){
 		GameButtonMode := "Install"
 		Return
@@ -1781,8 +1794,14 @@ GetGTVer(){
 		FileDelete A_WorkingDir . "\Launcher\Bin\ver"
 	RunWait A_ComSpec " /c versionscrape.exe", A_WorkingDir . "\Launcher\Bin", "Hide"
 	If !FileExist(A_WorkingDir . "\Launcher\Bin\ver"){
-		MsgBox "Failed to launch. Check you internet connection and try again", "Growtopia Launcher", "OK T5"
-		ExitApp
+		MsgBox "Failed to check for an update, please try again", "Growtopia Launcher", "OK T5"
+		GameButtonMode := "Check"
+		Return
+	}
+	If !FileRead(A_WorkingDir . "\Launcher\Bin\ver"){
+		MsgBox "Failed to check for an update, please try again", "Growtopia Launcher", "OK T5"
+		GameButtonMode := "Check"
+		Return
 	}
 	FVer := StrSplit(FileRead(A_WorkingDir . "\Launcher\Bin\ver"), ",")
 	Loop FVer.Length {
@@ -1795,16 +1814,28 @@ GetGTVer(){
 		FileDelete A_WorkingDir . "\Launcher\Bin\s"
 	RunWait A_ComSpec " /c sizequery.exe", A_WorkingDir . "\Launcher\Bin", "Hide"
 	If !FileExist(A_WorkingDir . "\Launcher\Bin\s"){
-		MsgBox "Failed to launch. Check you internet connection and try again", "Growtopia Launcher", "OK T5"
-		ExitApp
+		MsgBox "Failed to check for an update. Please try again", "Growtopia Launcher", "OK T5"
+		GameButtonMode := "Check"
+		Return
+	}
+	Try {
+		Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\g"))
+		Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\s"))
+	} Catch {
+		MsgBox "Failed to check for an update. Please try again", "Growtopia Launcher", "OK T5"
+		GameButtonMode := "Check"
+		Return
 	}
 	If Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\g")) != Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\s")){
-		GTVersion := Format("{:0.2f}", GTVersion - 0.01)
 		GameButtonMode := "Update"
 		Return
 	}
 	GameButtonMode := "Launch"
 	Return
+}
+GetGTVer(){
+	GetGTVer_Main()
+	SetGameButton()
 }
 
 DownloadFile(URL, FTarget){
@@ -1854,7 +1885,7 @@ DownloadFile(URL, FTarget){
 	}
 	SizeNow := Format("{:0.2f}", SizeNow / Dvsor)
 	SetTimer DLProgQuery, 100
-	FileAppend '#Requires AutoHotkey v2.0-a`nDownload "' . URL . '", "' . Target . '"`nExitApp', FDir . "\Downloader.ahk"
+	FileAppend 'Try`n`tDownload "' . URL . '", "' . Target . '"`nCatch`n`tFileDelete "' . Target . '"`nExitApp', FDir . "\Downloader.ahk"
 	RunWait A_ComSpec . ' /c ahk2exe /in "' . FDir . '\Downloader.ahk" /out "' . FDir . '\Downloader.exe" /base "AutoHotkeyUX.exe"', A_WorkingDir . "\Launcher\Bin\", "Hide"
 	FileDelete FDir . "\Downloader.ahk"
 	If !FileExist(FDir . "\Downloader.exe"){
@@ -1915,6 +1946,7 @@ MainDisable(){
 	GameButtonState := "Off"
 	SetGameButton()
 	SetTimer GetPlayerCount, 0
+	SetTimer GetGTVer, 0
 	Return
 }
 
@@ -1922,8 +1954,9 @@ MainEnable(){
 	Global
 	GameButton.Enabled := True
 	GameButtonState := "On"
-	SetGameButton()
 	GetPlayerCount()
+	SetGameButton()
 	SetTimer GetPlayerCount, SettingsList[4] * 1000
+	SetTimer GetGTVer, SettingsList[5] * 3600 * 1000
 	Return
 }
