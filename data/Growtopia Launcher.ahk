@@ -1431,9 +1431,12 @@ GuiMain(){
 }
 MainClose(*){
 	Global
-	FileDelete A_WorkingDir . "\Launcher\Bin\player"
-	FileDelete A_WorkingDir . "\Launcher\Bin\s"
-	FileDelete A_WorkingDir . "\Launcher\Bin\ver"
+	Try
+		FileDelete A_WorkingDir . "\Launcher\Bin\player"
+	Try
+		FileDelete A_WorkingDir . "\Launcher\Bin\s"
+	Try
+		FileDelete A_WorkingDir . "\Launcher\Bin\ver"
 	If SettingsList[1] {
 		If LauncherWorking {
 			If MsgBox("Launcher is still running. Are you sure you want to close now?", "Growtopia Launcher", "YesNo Default2 T5") = "Yes" {
@@ -1449,9 +1452,12 @@ MainClose(*){
 }
 MCloseMain(*){
 	Global
-	FileDelete A_WorkingDir . "\Launcher\Bin\player"
-	FileDelete A_WorkingDir . "\Launcher\Bin\s"
-	FileDelete A_WorkingDir . "\Launcher\Bin\ver"
+	Try
+		FileDelete A_WorkingDir . "\Launcher\Bin\player"
+	Try
+		FileDelete A_WorkingDir . "\Launcher\Bin\s"
+	Try
+		FileDelete A_WorkingDir . "\Launcher\Bin\ver"
 	If LauncherWorking {
 		If MsgBox("Launcher is still running. Are you sure you want to close now?", "Growtopia Launcher", "YesNo Default2 T5") = "Yes" {
 			RunWait A_ComSpec . " /c taskkill /pid " . WinGetPid("ahk_exe msedgewebview2.exe"), , "Hide"
