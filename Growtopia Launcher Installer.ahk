@@ -59,23 +59,13 @@ Upgrade(){
         If InStr(A_LoopFileName, "Growtopia Launcher")
             FileDelete A_LoopFilePath
     }
-    Loop Files GTDir . "\Launcher\*", "FR" {
-        If A_LoopFileName = "Settings" {
-            If(MsgBox("Reset settings to default values? Recommended if the update adds a new setting", "Growtopia Launcher Installer", "YesNo T10") = "No")
-                Continue
-            If A_LoopFileName = "g"
-                Continue
-            FileDelete A_LoopFilePath
-        }
-    }
+	DirDelete GTDir . "\Launcher", True
     Install()
 }
 
 Install(){
 	Global
     DirCopy A_WorkingDir . "\data", GTDir, 1
-	If FileExist(A_WorkingDir . "\data\Launcher\Bin\g")
-		FileDelete A_WorkingDir . "\data\Launcher\Bin\g"
     Loop Files GTDir . "\*.ahk" {
         If InStr(A_LoopFileName, "Growtopia Launcher")
             ExeName := A_LoopFileName
