@@ -4,7 +4,7 @@
 ;  /   \  __\_  __ \/  _ \ \/ \/ /\   __\/  _ \\____ \|  \__  \    ;
 ;  \    \_\  \  | \(  <_> )     /  |  | (  <_> )  |_> >  |/ __ \_  ;
 ;   \______  /__|   \____/ \/\_/   |__|  \____/|   __/|__(____  /  ;
-;  	       \/                                  |__|           \/   ;
+;          \/                                  |__|           \/   ;
 ;    .____                               .__                       ;
 ;    |    |   _____   __ __  ____   ____ |  |__   ___________      ;
 ;    |    |   \__  \ |  |  \/    \_/ ___\|  |  \_/ __ \_  __ \     ;
@@ -12,7 +12,7 @@
 ;    |_______ (____  /____/|___|  /\___  >___|  /\___  >__|        ;
 ;            \/    \/           \/     \/     \/     \/            ;
 ;                                                                  ;
-Global                     Version := 1.2                          ;
+Global                     Version := 1.3                          ;
 ; ---------------------------------------------------------------- ;
 
 ; -------------------- Initialization -------------------- ;
@@ -39,6 +39,7 @@ Global DLProgress := False
 Global COLLAPSE_THIS := True
 Global OnlineUser := -2
 Global OnlineUserOutdated := False
+Global LauncherWorking := False
 
 ; -------------------- Pre-loaded libraries -------------------- ;
 If COLLAPSE_THIS Or True {
@@ -1383,7 +1384,14 @@ If !A_IsAdmin {
 }
 If FileExist(A_WorkingDir . "\Launcher\autostart")
 	FileDelete A_WorkingDir . "\Launcher\autostart"
-LoadSettings()
+If FileExist(A_WorkingDir . "\Launcher\Bin\g"){
+	RegWrite FileRead(A_WorkingDir . "\Launcher\Bin\g"), "REG_DWORD", "HKCU\Software\Growtopia Launcher", "GTSize"
+	FileDelete A_WorkingDir . "\Launcher\Bin\g"
+}
+If FileExist(A_WorkingDir . "\Launcher\Settings")
+	SettingsFileToReg()
+Else
+	ReadSetReg()
 GuiMain()
 GetPlayerCount()
 Return
@@ -1398,15 +1406,16 @@ GuiMain(){
 	Main.Add("Picture", "x30 y20 w400 h200 BackgroundTrans", A_WorkingDir . "\Launcher\Images\logo_1.png")
 	Main.SetFont("cFFFFFF s16", "Century Gothic")
 	VerText := Main.Add("Text", "x30 y200 w400 BackgroundTrans Center", "`n")
-	ServerText := Main.Add("Text", "x401 y602 w590 BackgroundTrans Center", "Loading player data...")
+	ServerText := Main.Add("Text", "x401 y602 w590 BackgroundTrans Center", "Loading...")
 	GameButton := Main.Add("Picture", "x501 y642 BackgroundTrans", A_WorkingDir . "\Launcher\Images\button_launch_off.png")
 	Main.Add("Picture", "x940 y0 BackgroundTrans",  A_WorkingDir . "\Launcher\Images\sidebar.png")
-	Main.Add("Picture", "x958 y26 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_forums.png").OnEvent("Click", FrLink)
-	Main.Add("Picture", "x958 y108 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_twitter.png").OnEvent("Click", TwLink)
-	Main.Add("Picture", "x958 y190 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_instagram.png").OnEvent("Click", IgLink)
-	Main.Add("Picture", "x958 y272 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_youtube.png").OnEvent("Click", YtLink)
-	Main.Add("Picture", "x958 y354 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_discord.png").OnEvent("Click", DcLink)
-	Main.Add("Picture", "x958 y436 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_github.png").OnEvent("Click", GhLink)
+	Main.Add("Picture", "x958 y26 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_close.png").OnEvent("Click", MCloseMain)
+	Main.Add("Picture", "x958 y108 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_forums.png").OnEvent("Click", FrLink)
+	Main.Add("Picture", "x958 y190 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_twitter.png").OnEvent("Click", TwLink)
+	Main.Add("Picture", "x958 y272 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_instagram.png").OnEvent("Click", IgLink)
+	Main.Add("Picture", "x958 y354 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_youtube.png").OnEvent("Click", YtLink)
+	Main.Add("Picture", "x958 y436 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_discord.png").OnEvent("Click", DcLink)
+	Main.Add("Picture", "x958 y518 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_github.png").OnEvent("Click", GhLink)
 	Main.Add("Picture", "x958 y694 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_settings.png").OnEvent("Click", GuiSet)
 	GetSelFile()
 	SelImg.Value := A_WorkingDir . "\Launcher\Images\menu_" . SelFile . ".png"
@@ -1422,12 +1431,35 @@ GuiMain(){
 }
 MainClose(*){
 	Global
+	FileDelete A_WorkingDir . "\Launcher\Bin\player"
+	FileDelete A_WorkingDir . "\Launcher\Bin\s"
+	FileDelete A_WorkingDir . "\Launcher\Bin\ver"
 	If SettingsList[1] {
-		RunWait A_ComSpec . " /c taskkill /pid " . WinGetPid("ahk_exe msedgewebview2.exe"), , "Hide"
+		If LauncherWorking {
+			If MsgBox("Launcher is still running. Are you sure you want to close now?", "Growtopia Launcher", "YesNo Default2 T5") = "Yes" {
+				RunWait A_ComSpec . " /c taskkill /pid " . WinGetPid("ahk_exe msedgewebview2.exe"), , "Hide"
+				ExitApp 0
+			}
+			Return 1
+		}
 		ExitApp 0
 	}
 	Main.Minimize()
 	Return 1
+}
+MCloseMain(*){
+	Global
+	FileDelete A_WorkingDir . "\Launcher\Bin\player"
+	FileDelete A_WorkingDir . "\Launcher\Bin\s"
+	FileDelete A_WorkingDir . "\Launcher\Bin\ver"
+	If LauncherWorking {
+		If MsgBox("Launcher is still running. Are you sure you want to close now?", "Growtopia Launcher", "YesNo Default2 T5") = "Yes" {
+			RunWait A_ComSpec . " /c taskkill /pid " . WinGetPid("ahk_exe msedgewebview2.exe"), , "Hide"
+			ExitApp 0
+		}
+		Return 1
+	}
+	ExitApp 0
 }
 GameButtonClick(*){
 	Global
@@ -1484,7 +1516,7 @@ GuiSet(*){
 	Global
 	MainDisable()
 	Set := Gui("", "Growtopia Launcher")
-	Set.SetFont("c00FF00 s12", "Consolas")
+	Set.SetFont("c00FF00 s12", "Century Gothic")
 	Set.BackColor := "000000"
 	GSet1 := Set.Add("Checkbox", "x10 y10 w500", "Quit launcher when closed")
 	GSet1.Value := SettingsList[1]
@@ -1509,7 +1541,7 @@ GuiSetSubmit(*){
 	SettingsList[4] := GSet4.Value
 	SettingsList[5] := GSet5.Value
 	SettingsListCheck()
-	GenSettingsFile()
+	WriteSetReg()
 	Set.Destroy()
 	EmbedView_TL.CoreWebView2.Navigate(EmbedURL[SettingsList[3]])
 	MainEnable()
@@ -1564,7 +1596,7 @@ InstallGT(){
 	If DLReturn = 2
 		Return
 	Install := Gui("", "Growtopia Launcher")
-	Install.SetFont("c00FF00 s12", "Consolas")
+	Install.SetFont("c00FF00 s12", "Century Gothic")
 	Install.BackColor := "000000"
 	Install.Add("Text", "x10 y10 w300 Center", "Installing Growtopia...")
 	Install.Show("Center")
@@ -1591,9 +1623,7 @@ InstallGT(){
 		FileDelete A_LoopFilePath
 	}
 	DirCopy DLPath, A_WorkingDir, 1
-	If FileExist(A_WorkingDir . "\Launcher\Bin\g")
-		FileDelete A_WorkingDir . "\Launcher\Bin\g"
-	FileAppend FileGetSize(A_Temp . "\Growtopia Launcher\Growtopia-Installer.exe"), A_WorkingDir . "\Launcher\Bin\g"
+	RegWrite FileGetSize(A_Temp . "\Growtopia Launcher\Growtopia-Installer.exe"), "REG_DWORD", "HKCU\Software\Growtopia Launcher", "GTSize"
 	DirDelete DLPath, 1
 	FileDelete A_Temp . "\Growtopia Launcher\Growtopia-Installer.exe"
 	Install.Destroy()
@@ -1614,7 +1644,7 @@ UpdateGT(){
 	If DLReturn = 2
 		Return
 	Update := Gui("", "Growtopia Launcher")
-	Update.SetFont("c00FF00 s12", "Consolas")
+	Update.SetFont("c00FF00 s12", "Century Gothic")
 	Update.BackColor := "000000"
 	Update.Add("Text", "x10 y10 w300 Center", "Updating Growtopia...")
 	Update.Show("Center")
@@ -1639,9 +1669,7 @@ UpdateGT(){
 		FileDelete A_LoopFilePath
 	}
 	DirCopy DLPath, A_WorkingDir, 1
-	If FileExist(A_WorkingDir . "\Launcher\Bin\g")
-		FileDelete A_WorkingDir . "\Launcher\Bin\g"
-	FileAppend FileGetSize(A_Temp . "\Growtopia Launcher\Growtopia-Installer.exe"), A_WorkingDir . "\Launcher\Bin\g"
+	RegWrite FileGetSize(A_Temp . "\Growtopia Launcher\Growtopia-Installer.exe"), "REG_DWORD", "HKCU\Software\Growtopia Launcher", "GTSize"
 	DirDelete DLPath, 1
 	FileDelete A_Temp . "\Growtopia Launcher\Growtopia-Installer.exe"
 	Update.Destroy()
@@ -1692,43 +1720,51 @@ SetGameButton(){
 	Return
 }
 
-LoadSettings(){
+SettingsFileToReg(){
 	Global
-	If !FileExist(A_WorkingDir . "\Launcher\Settings")
-		DefaultSettings()
 	SettingsFile := FileOpen(A_WorkingDir . "\Launcher\Settings", "r")
 	Try {
 		Loop SettingsCount {
 			SettingsFile.ReadLine()
 			SettingsList[A_Index] := Format("{:d}", SettingsFile.ReadLine())
 		}
-	} Catch 
-		DefaultSettings()
+	} Catch {
+		SettingsList[1] := 0
+		SettingsList[2] := 1
+		SettingsList[3] := 1
+		SettingsList[4] := 30
+		SettingsList[5] := 4
+	}
 	SettingsFile.Close()
 	SettingsListCheck()
+	Try
+		RegDeleteKey "HKCU\Software\Growtopia Launcher"
+	RegCreateKey "HKCU\Software\Growtopia Launcher"
+	WriteSetReg()
+	FileDelete A_WorkingDir . "\Launcher\Settings"
 	Return
 }
 
-DefaultSettings(){
+WriteSetReg(){
 	Global
-	SettingsList[1] := 0
-	SettingsList[2] := 1
-	SettingsList[3] := 1
-	SettingsList[4] := 30
-	SettingsList[5] := 4
-	GenSettingsFile()
+	RegCreateKey "HKCU\Software\Growtopia Launcher"
+	RegWrite SettingsList[1], "REG_DWORD", "HKCU\Software\Growtopia Launcher", "Set01QuitLauncher"
+	RegWrite SettingsList[2], "REG_DWORD", "HKCU\Software\Growtopia Launcher", "Set02HideLauncher"
+	RegWrite SettingsList[3], "REG_DWORD", "HKCU\Software\Growtopia Launcher", "Set03TimelineDestination"
+	RegWrite SettingsList[4], "REG_DWORD", "HKCU\Software\Growtopia Launcher", "Set04PlayerCounterUpdateInterval"
+	RegWrite SettingsList[5], "REG_DWORD", "HKCU\Software\Growtopia Launcher", "Set05VersionCheckInterval"
 	Return
 }
 
-GenSettingsFile(){
+ReadSetReg(){
 	Global
-	If FileExist(A_WorkingDir . "\Launcher\Settings")
-		FileDelete A_WorkingDir . "\Launcher\Settings"
-	FileAppend "Quit launcher`n" . SettingsList[1] . "`n", A_WorkingDir . "\Launcher\Settings"
-	FileAppend "Hide launcher`n" . SettingsList[2] . "`n", A_WorkingDir . "\Launcher\Settings"
-	FileAppend "Timeline destination`n" . SettingsList[3] . "`n", A_WorkingDir . "\Launcher\Settings"
-	FileAppend "Player counter update interval`n" . SettingsList[4] . "`n", A_WorkingDir . "\Launcher\Settings"
-	FileAppend "Version check interval`n" . SettingsList[5] . "`n", A_WorkingDir . "\Launcher\Settings"
+	RegCreateKey "HKCU\Software\Growtopia Launcher"
+	SettingsList[1] := RegRead("HKCU\Software\Growtopia Launcher", "Set01QuitLauncher", 0)
+	SettingsList[2] := RegRead("HKCU\Software\Growtopia Launcher", "Set02HideLauncher", 1)
+	SettingsList[3] := RegRead("HKCU\Software\Growtopia Launcher", "Set03TimelineDestination", 1)
+	SettingsList[4] := RegRead("HKCU\Software\Growtopia Launcher", "Set04PlayerCounterUpdateInterval", 30)
+	SettingsList[5] := RegRead("HKCU\Software\Growtopia Launcher", "Set05VersionCheckInterval", 4)
+	SettingsListCheck()
 	Return
 }
 
@@ -1783,13 +1819,11 @@ GetGTVer_Main(){
 		GameButtonMode := "Install"
 		Return
 	}
-	If !FileExist(A_WorkingDir . "\Launcher\Bin\g"){
+	If !RegRead("HKCU\Software\Growtopia Launcher", "GTSize", 0){
 		MsgBox "A new version of Growtopia must be installed", "Growtopia Launcher", "OK T5"
 		GameButtonMode := "Install"
 		Return
 	}
-	If !FileRead(A_WorkingDir . "\Launcher\Bin\g")
-		FileAppend 0, A_WorkingDir . "\Launcher\Bin\g"
 	If FileExist(A_WorkingDir . "\Launcher\Bin\ver")
 		FileDelete A_WorkingDir . "\Launcher\Bin\ver"
 	RunWait A_ComSpec " /c versionscrape.exe", A_WorkingDir . "\Launcher\Bin", "Hide"
@@ -1819,14 +1853,14 @@ GetGTVer_Main(){
 		Return
 	}
 	Try {
-		Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\g"))
+		Format("{:d}", RegRead("HKCU\Software\Growtopia Launcher", "GTSize", 0))
 		Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\s"))
 	} Catch {
 		MsgBox "Failed to check for an update. Please try again", "Growtopia Launcher", "OK T5"
 		GameButtonMode := "Check"
 		Return
 	}
-	If Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\g")) != Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\s")){
+	If Format("{:d}", RegRead("HKCU\Software\Growtopia Launcher", "GTSize", 0)) != Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\s")){
 		GameButtonMode := "Update"
 		Return
 	}
@@ -1851,10 +1885,10 @@ DownloadFile(URL, FTarget){
 	If FileExist(FDir . "\Downloader.exe")
 		FileDelete FDir . "\Downloader.exe"
 	DProg := Gui("-Sysmenu", "Growtopia Launcher")
-	DProg.SetFont("c00FF00 s12", "Consolas")
+	DProg.SetFont("c00FF00 s12", "Century Gothic")
 	DProg.BackColor := "000000"
-	ProgText := DProg.Add("Text", "w500 Center", "Downloading 000.00 MB of 000.00 MB (100.0%)")
-	DProg.SetFont("c00FF00 s10", "Consolas")
+	ProgText := DProg.Add("Text", "w500 Center", "Downloading : 000.00 MB of 000.00 MB (100.0%)")
+	DProg.SetFont("c00FF00 s10", "Century Gothic")
 	DProg.Add("Text", "y40 x10 w500 Center", "Press (Ctrl + Shift + X) to cancel download")
 	ProgText.Text := "Calculating progress..."
 	DProg.Title := "Growtopia Launcher : Downloading " . FName
@@ -1866,7 +1900,12 @@ DownloadFile(URL, FTarget){
 		DProg.Destroy()
 		Return 1
 	}
-	SizeNow := Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\s"))
+	Try
+		SizeNow := Format("{:d}", FileRead(A_WorkingDir . "\Launcher\Bin\s"))
+	Catch {
+		Dprog.Destroy()
+		Return 1
+	}
 	If FileExist(Target){
 		If SizeNow = FileGetSize(Target){
 			DProg.Destroy()
@@ -1927,7 +1966,7 @@ DLProgQuery(){
 		SizeDL := Format("{:0.2f}", 0.00)
 	Else
 		SizeDL := Format("{:0.2f}", FileGetSize(Target) / Dvsor)
-	ProgText.Text := "Downloading " . SizeDL . " " . Denom . " of " . SizeNow . " " . Denom . " (" . Format("{:0.1f}", 100 * SizeDL / SizeNow) . "%)"
+	ProgText.Text := "Downloading : " . SizeDL . " " . Denom . " of " . SizeNow . " " . Denom . " (" . Format("{:0.1f}", 100 * SizeDL / SizeNow) . "%)"
 	Return
 }
 ^+x:: {
@@ -1944,6 +1983,7 @@ DLProgQuery(){
 
 MainDisable(){
 	Global
+	LauncherWorking := True
 	GameButton.Enabled := False
 	GameButtonState := "Off"
 	SetGameButton()
@@ -1960,5 +2000,6 @@ MainEnable(){
 	SetGameButton()
 	SetTimer GetPlayerCount, SettingsList[4] * 1000
 	SetTimer GetGTVer, SettingsList[5] * 3600 * 1000
+	LauncherWorking := False
 	Return
 }
