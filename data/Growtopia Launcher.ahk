@@ -20,6 +20,7 @@ SendMode "Input"
 SetWorkingDir A_ScriptDir
 #SingleInstance Force
 DetectHiddenWindows True
+OnError LogError
 
 Global EmbedURL := ["file://" . StrReplace(StrReplace(A_WorkingDir, " ", "%20"), "\", "/") . "/Launcher/Page/twitter.html",
 					"https://www.growtopiagame.com/forums/forum/general/announcements",
@@ -1431,12 +1432,9 @@ GuiMain(){
 }
 MainClose(*){
 	Global
-	Try
-		FileDelete A_WorkingDir . "\Launcher\Bin\player"
-	Try
-		FileDelete A_WorkingDir . "\Launcher\Bin\s"
-	Try
-		FileDelete A_WorkingDir . "\Launcher\Bin\ver"
+	FileDelete A_WorkingDir . "\Launcher\Bin\player"
+	FileDelete A_WorkingDir . "\Launcher\Bin\s"
+	FileDelete A_WorkingDir . "\Launcher\Bin\ver"
 	If SettingsList[1] {
 		If LauncherWorking {
 			If MsgBox("Launcher is still running. Are you sure you want to close now?", "Growtopia Launcher", "YesNo Default2 T5") = "Yes" {
@@ -1452,12 +1450,9 @@ MainClose(*){
 }
 MCloseMain(*){
 	Global
-	Try
-		FileDelete A_WorkingDir . "\Launcher\Bin\player"
-	Try
-		FileDelete A_WorkingDir . "\Launcher\Bin\s"
-	Try
-		FileDelete A_WorkingDir . "\Launcher\Bin\ver"
+	FileDelete A_WorkingDir . "\Launcher\Bin\player"
+	FileDelete A_WorkingDir . "\Launcher\Bin\s"
+	FileDelete A_WorkingDir . "\Launcher\Bin\ver"
 	If LauncherWorking {
 		If MsgBox("Launcher is still running. Are you sure you want to close now?", "Growtopia Launcher", "YesNo Default2 T5") = "Yes" {
 			RunWait A_ComSpec . " /c taskkill /pid " . WinGetPid("ahk_exe msedgewebview2.exe"), , "Hide"
@@ -1465,6 +1460,9 @@ MCloseMain(*){
 		}
 		Return 1
 	}
+	If MsgBox("Close Growtopia Launcher?", "Growtopia Launcher", "YesNo Default1 T5") = "No"
+		Return 1
+	RunWait A_ComSpec . " /c taskkill /pid " . WinGetPid("ahk_exe msedgewebview2.exe"), , "Hide"
 	ExitApp 0
 }
 GameButtonClick(*){
@@ -1531,10 +1529,10 @@ GuiSet(*){
 	Set.Add("Text", "x10 y70", "Timeline destination")
 	GSet3 := Set.Add("DropDownList", "x10 y90 Choose" . SettingsList[3], ["Twitter", "Forums", "Instagram", "YouTube", "None"])
 	Set.Add("Text", "x10 y130", "Player counter update interval (in seconds)")
-	GSet4 := Set.Add("Slider", "x10 y150 Range15-60 Tooltip", SettingsList[4])
-	Set.Add("Text", "x10 y170", "Version check interval (in hours)")
-	GSet5 := Set.Add("Slider", "x10 y190 Range1-24 Tooltip", SettingsList[5])
-	Set.Add("Button", "c000000 x160 y230 h32 w200", "Save and Exit").OnEvent("Click", GuiSetSubmit)
+	GSet4 := Set.Add("Slider", "x10 y150 Range15-120 Tooltip", SettingsList[4])
+	Set.Add("Text", "x10 y180", "Version check interval (in hours)")
+	GSet5 := Set.Add("Slider", "x10 y200 Range1-24 Tooltip", SettingsList[5])
+	Set.Add("Button", "c000000 x160 y240 h32 w200", "Save and Exit").OnEvent("Click", GuiSetSubmit)
 	Set.OnEvent("Close", GuiSetSubmit)
 	Set.Show("Center")
 	Return
@@ -1556,6 +1554,14 @@ GuiSetSubmit(*){
 
 ; -------------------- Runtime functions -------------------- ;
 
+LogError(exp, mode){
+	Global
+	If exp.Extra
+		exp.Extra := "Specifically : " exp.Extra "`n`t"
+	FileAppend FormatTime(, "d MMMM yyyy HH:mm:ss") " - Error on line " exp.Line " :`n`t" exp.What " : " exp.Message "`n`t" exp.Extra "Stack :`n" exp.Stack "`n`n", A_WorkingDir "\Launcher\log.txt"
+	Return -1
+}
+
 GetPlayerCount(){
 	Global
 	If FileExist(A_WorkingDir . "\Launcher\Bin\player")
@@ -1576,7 +1582,7 @@ GetPlayerCount(){
 		If !InStr(GPCFrom[A_Index], '"online_user"')
 			Continue
 		OnlineUser := Format("{:d}", RegExReplace(StrReplace(GPCFrom[A_Index], '"online_user"'), '[\{:",]'))
-		If OnlineUser < 10 {
+		If OnlineUser < 1 {
 			ServerText.Opt("cFF1F1F")
 			ServerText.Text := "Server is down"
 		} Else If OnlineUser < 100 {
@@ -1743,8 +1749,7 @@ SettingsFileToReg(){
 	}
 	SettingsFile.Close()
 	SettingsListCheck()
-	Try
-		RegDeleteKey "HKCU\Software\Growtopia Launcher"
+	RegDeleteKey "HKCU\Software\Growtopia Launcher"
 	RegCreateKey "HKCU\Software\Growtopia Launcher"
 	WriteSetReg()
 	FileDelete A_WorkingDir . "\Launcher\Settings"
@@ -1789,32 +1794,22 @@ GetSelFile(){
 	Global
 	SelTime := Format("{:d}", FormatTime("", "d") + FormatTime("", "M") * 100)
 	SelFile := "0_default"
-	If(SelTime >= 105 and SelTime <= 118)
-		SelFile := "1_anniversary"
-	If(SelTime >= 128 && SelTime <= 210)
-		SelFile := "2_newyear"
-	If(SelTime >= 210 && SelTime <= 220)
-		SelFile := "3_valentine"
-	If(SelTime >= 315 && SelTime <= 325)
-		SelFile := "4_stpatrick"
-	If(SelTime >= 400 && SelTime <= 430)
-		SelFile := "5_easter"
-	If(SelTime >= 501 && SelTime <= 513)
-		SelFile := "6_cinco"
-	If(SelTime >= 601 && SelTime <= 620)
-		SelFile := "7_pineapple"
-	If(SelTime >= 627 && SelTime <= 731)
-		SelFile := "8_summer"
-	If(SelTime >= 810 && SelTime <= 824)
-		SelFile := "9_paw"
-	If(SelTime >= 908 && SelTime <= 930)
-		SelFile := "10_harvest"
-	If(SelTime >= 1020 && SelTime <= 1105)
-		SelFile := "11_halloween"
-	If(SelTime >= 1118 && SelTime <= 1200)
-		SelFile := "12_thanksgiving"
-	If(SelTime >= 1210 && SelTime <= 1231)
-		SelFile := "13_winter"
+	If !FileExist(A_WorkingDir "\Launcher\bin\eventbg") {
+		FileAppend("-------------------- DO NOT DELETE --------------------`nWelcome to the event background setting file. Here, you set the time as to when to display certain custom backgrounds for the launcher. Here is how the file works.`n-------------------- DO NOT DELETE --------------------`nEach line is formatted as such : StartDate EndDate FileName`n- StartDate refers to the start of when the background image should be shown. The date is formatted as 'MMDD', 'MM' refers to the month number (1-12), and 'DD' refers to the date (1-31). For example, a StartDate of '621' refers to June 21st, and '1130' refers to November 30th.`n- EndDate refers to the end of when the background image should be shown. The date is formatted as 'MMDD', 'MM' refers to the month number (1-12), and 'DD' refers to the date (1-31). For example, an EndDate of '621' refers to June 21st, and '1130' refers to November 30th.`n- FileName refers to the background image file that should be shown. The image file itself must have 'menu_' at the start and '.png' as its extension. The image should be 1028x768 pixels in size. The file must be placed under the 'Launcher\Images' folder. For example, a FileName of 'MyBackground' would select the image file named 'menu_MyBackground.png' inside the 'Launcher\Images' folder.`n-------------------- DO NOT DELETE --------------------`nFor example, the line '601 620 7_pineapple' means that the image file 'menu_7_pineapple.png' should be used between June 1st and June 20th. Note that these numbers are arbitrary (For example, an EndDate of '231' or February 31st will be accepted, even though it's not a valid date) and can overlap (For example, one  end date of '520' and another start date of '515' will be accepted). Lines further down will overwrite the ones further up.`n-------------------- DATA STARTS HERE --------------------`n105 118 1_anniversary`n128 210 2_newyear`n210 220 3_valentine`n315 325 4_stpatrick`n400 430 5_easter`n501 513 6_cinco`n601 620 7_pineapple`n627 731 8_summer`n810 824 9_paw`n908 930 10_harvest`n1020 1105 11_halloween`n1118 1200 12_thanksgiving`n1210 1231 13_winter", A_WorkingDir "\Launcher\bin\eventbg")
+	}
+	ebgfile := FileOpen(A_WorkingDir "\Launcher\bin\eventbg", "r")
+	Loop 10
+		ebgfile.ReadLine()
+	While !ebgfile.AtEOF {
+		ebgs := StrSplit(ebgfile.ReadLine(), A_Space)
+		Try {
+			If (Format("{:d}", ebgs[1]) <= SelTime) and (SelTime <= Format("{:d}", ebgs[2]))
+				If FileExist(A_WorkingDir "\Launcher\Images\menu_" ebgs[3] ".png")
+					SelFile := ebgs[3]
+		} Catch
+			Continue
+	}
+	ebgfile.Close()
 	Return
 }
 
