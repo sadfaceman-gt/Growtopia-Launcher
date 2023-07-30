@@ -1,0 +1,25 @@
+-------------------- DO NOT DELETE --------------------
+Welcome to the event background setting file. Here, you set the time as to when to display certain custom backgrounds for the launcher. Here is how the file works.
+-------------------- DO NOT DELETE --------------------
+Each line corresponds to one background, and is formatted as such : StartDate EndDate FileName
+- StartDate refers to the start of when the background image should be shown. The date is formatted as 'MMDD', 'MM' refers to the month number (1-12), and 'DD' refers to the date (1-31). For example, a StartDate of '621' refers to June 21st, and '1130' refers to November 30th.
+- EndDate refers to the end of when the background image should be shown. The date is formatted as 'MMDD', 'MM' refers to the month number (1-12), and 'DD' refers to the date (1-31). For example, a StartDate of '621' refers to June 21st, and '1130' refers to November 30th.
+- FileName refers to the background image file that should be shown. The image file itself must have 'menu_' at the start and '.png' as its extension. The image should be 1028x768 pixels in size. The file must be placed under the 'Launcher\Images' folder. For example, a FileName of 'MyBackground' would select the image file named 'menu_MyBackground.png' inside the 'Launcher\Images' folder.
+-------------------- DO NOT DELETE --------------------
+For example, the line '601 620 7_pineapple' means that the image file 'menu_7_pineapple.png' should be used between June 1st and June 20th. Note that these numbers are arbitrary (For example, an EndDate of '0231' or February 31st will be accepted, even though it's not a valid date) and can overlap (For example, an end date of '0520' and another start date of '0515' will be accepted). Lines further down will overwrite the ones further up.
+-------------------- DO NOT DELETE --------------------
+DO NOT MODIFY THE CONTENTS OF THIS FILE ABOVE THE LINE THAT SAYS 'DATA STARTS HERE'. If custom backgrounds stops working, reset this file by deleting it.
+-------------------- DATA STARTS HERE --------------------
+105 118 1_anniversary
+128 210 2_newyear
+210 220 3_valentine
+315 325 4_stpatrick
+400 430 5_easter
+501 513 6_cinco
+601 620 7_pineapple
+627 731 8_summer
+810 824 9_paw
+908 930 10_harvest
+1020 1105 11_halloween
+1118 1200 12_thanksgiving
+1210 1231 13_winter

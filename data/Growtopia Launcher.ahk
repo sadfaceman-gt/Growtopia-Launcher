@@ -12,7 +12,7 @@
 ;    |_______ (____  /____/|___|  /\___  >___|  /\___  >__|        ;
 ;            \/    \/           \/     \/     \/     \/            ;
 ;                                                                  ;
-Global                     Version := 1.3                          ;
+Global                     Version := 1.5                          ;
 ; ---------------------------------------------------------------- ;
 
 ; -------------------- Initialization -------------------- ;
@@ -1412,12 +1412,11 @@ GuiMain(){
 	Main.Add("Picture", "x940 y0 BackgroundTrans",  A_WorkingDir . "\Launcher\Images\sidebar.png")
 	Main.Add("Picture", "x958 y26 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_close.png").OnEvent("Click", MCloseMain)
 	Main.Add("Picture", "x958 y108 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_forums.png").OnEvent("Click", FrLink)
-	Main.Add("Picture", "x958 y190 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_twitter.png").OnEvent("Click", TwLink)
-	Main.Add("Picture", "x958 y272 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_instagram.png").OnEvent("Click", IgLink)
-	Main.Add("Picture", "x958 y354 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_youtube.png").OnEvent("Click", YtLink)
-	Main.Add("Picture", "x958 y436 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_discord.png").OnEvent("Click", DcLink)
-	Main.Add("Picture", "x958 y518 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_github.png").OnEvent("Click", GhLink)
-	Main.Add("Picture", "x958 y694 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_settings.png").OnEvent("Click", GuiSet)
+	Main.Add("Picture", "x958 y190 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_instagram.png").OnEvent("Click", IgLink)
+	Main.Add("Picture", "x958 y272 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_youtube.png").OnEvent("Click", YtLink)
+	Main.Add("Picture", "x958 y354 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_discord.png").OnEvent("Click", DcLink)
+	Main.Add("Picture", "x958 y436 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_github.png").OnEvent("Click", GhLink)
+	Main.Add("Picture", "x958 y518 BackgroundTrans", A_WorkingDir . "\Launcher\Images\icon_settings.png").OnEvent("Click", GuiSet)
 	GetSelFile()
 	SelImg.Value := A_WorkingDir . "\Launcher\Images\menu_" . SelFile . ".png"
 	MainDisable()
@@ -1486,13 +1485,6 @@ FrLink(*){
 		Run "https://www.growtopiagame.com/forums/forum/general/announcements"
 	Return
 }
-TwLink(*){
-	If GetKeyState("Ctrl")
-		EmbedView_TL.CoreWebView2.Navigate("https://twitter.com/growtopiagame")
-	Else
-		Run "https://twitter.com/growtopiagame"
-	Return
-}
 IgLink(*){
 	If GetKeyState("Ctrl")
 		EmbedView_TL.CoreWebView2.Navigate("https://www.instagram.com/growtopia?theme=dark")
@@ -1527,7 +1519,7 @@ GuiSet(*){
 	GSet2 := Set.Add("Checkbox", "x10 y40 w500", "Hide launcher when launching")
 	GSet2.Value := SettingsList[2]
 	Set.Add("Text", "x10 y70", "Timeline destination")
-	GSet3 := Set.Add("DropDownList", "x10 y90 Choose" . SettingsList[3], ["Twitter", "Forums", "Instagram", "YouTube", "None"])
+	GSet3 := Set.Add("DropDownList", "x10 y90 Choose" . SettingsList[3], ["", "Forums", "Instagram", "YouTube", "None"])
 	Set.Add("Text", "x10 y130", "Player counter update interval (in seconds)")
 	GSet4 := Set.Add("Slider", "x10 y150 Range15-120 Tooltip", SettingsList[4])
 	Set.Add("Text", "x10 y180", "Version check interval (in hours)")
@@ -1743,7 +1735,7 @@ SettingsFileToReg(){
 	} Catch {
 		SettingsList[1] := 0
 		SettingsList[2] := 1
-		SettingsList[3] := 1
+		SettingsList[3] := 3
 		SettingsList[4] := 30
 		SettingsList[5] := 4
 	}
@@ -1772,7 +1764,7 @@ ReadSetReg(){
 	RegCreateKey "HKCU\Software\Growtopia Launcher"
 	SettingsList[1] := RegRead("HKCU\Software\Growtopia Launcher", "Set01QuitLauncher", 0)
 	SettingsList[2] := RegRead("HKCU\Software\Growtopia Launcher", "Set02HideLauncher", 1)
-	SettingsList[3] := RegRead("HKCU\Software\Growtopia Launcher", "Set03TimelineDestination", 1)
+	SettingsList[3] := RegRead("HKCU\Software\Growtopia Launcher", "Set03TimelineDestination", 3)
 	SettingsList[4] := RegRead("HKCU\Software\Growtopia Launcher", "Set04PlayerCounterUpdateInterval", 30)
 	SettingsList[5] := RegRead("HKCU\Software\Growtopia Launcher", "Set05VersionCheckInterval", 4)
 	SettingsListCheck()
@@ -1782,7 +1774,7 @@ ReadSetReg(){
 SettingsListCheck(){
 	Global
 	If (SettingsList[3] < 1) or (SettingsList[3] > EmbedURL.Length)
-		SettingsList[3] := 1
+		SettingsList[3] := 3
 	If (SettingsList[4] < 15) or (SettingsList[4] > 120)
 		SettingsList[4] := 30
 	If (SettingsList[5] < 1) or (SettingsList[4] > 24)
@@ -1795,10 +1787,10 @@ GetSelFile(){
 	SelTime := Format("{:d}", FormatTime("", "d") + FormatTime("", "M") * 100)
 	SelFile := "0_default"
 	If !FileExist(A_WorkingDir "\Launcher\bin\eventbg") {
-		FileAppend("-------------------- DO NOT DELETE --------------------`nWelcome to the event background setting file. Here, you set the time as to when to display certain custom backgrounds for the launcher. Here is how the file works.`n-------------------- DO NOT DELETE --------------------`nEach line is formatted as such : StartDate EndDate FileName`n- StartDate refers to the start of when the background image should be shown. The date is formatted as 'MMDD', 'MM' refers to the month number (1-12), and 'DD' refers to the date (1-31). For example, a StartDate of '621' refers to June 21st, and '1130' refers to November 30th.`n- EndDate refers to the end of when the background image should be shown. The date is formatted as 'MMDD', 'MM' refers to the month number (1-12), and 'DD' refers to the date (1-31). For example, an EndDate of '621' refers to June 21st, and '1130' refers to November 30th.`n- FileName refers to the background image file that should be shown. The image file itself must have 'menu_' at the start and '.png' as its extension. The image should be 1028x768 pixels in size. The file must be placed under the 'Launcher\Images' folder. For example, a FileName of 'MyBackground' would select the image file named 'menu_MyBackground.png' inside the 'Launcher\Images' folder.`n-------------------- DO NOT DELETE --------------------`nFor example, the line '601 620 7_pineapple' means that the image file 'menu_7_pineapple.png' should be used between June 1st and June 20th. Note that these numbers are arbitrary (For example, an EndDate of '231' or February 31st will be accepted, even though it's not a valid date) and can overlap (For example, one  end date of '520' and another start date of '515' will be accepted). Lines further down will overwrite the ones further up.`n-------------------- DATA STARTS HERE --------------------`n105 118 1_anniversary`n128 210 2_newyear`n210 220 3_valentine`n315 325 4_stpatrick`n400 430 5_easter`n501 513 6_cinco`n601 620 7_pineapple`n627 731 8_summer`n810 824 9_paw`n908 930 10_harvest`n1020 1105 11_halloween`n1118 1200 12_thanksgiving`n1210 1231 13_winter", A_WorkingDir "\Launcher\bin\eventbg")
+		FileAppend("-------------------- DO NOT DELETE --------------------`nWelcome to the event background setting file. Here, you set the time as to when to display certain custom backgrounds for the launcher. Here is how the file works.`n-------------------- DO NOT DELETE --------------------`nEach line corresponds to one background, and is formatted as such : StartDate EndDate FileName`n- StartDate refers to the start of when the background image should be shown. The date is formatted as 'MMDD', 'MM' refers to the month number (1-12), and 'DD' refers to the date (1-31). For example, a StartDate of '621' refers to June 21st, and '1130' refers to November 30th.`n- EndDate refers to the end of when the background image should be shown. The date is formatted as 'MMDD', 'MM' refers to the month number (1-12), and 'DD' refers to the date (1-31). For example, a StartDate of '621' refers to June 21st, and '1130' refers to November 30th.`n- FileName refers to the background image file that should be shown. The image file itself must have 'menu_' at the start and '.png' as its extension. The image should be 1028x768 pixels in size. The file must be placed under the 'Launcher\Images' folder. For example, a FileName of 'MyBackground' would select the image file named 'menu_MyBackground.png' inside the 'Launcher\Images' folder.`n-------------------- DO NOT DELETE --------------------`nFor example, the line '601 620 7_pineapple' means that the image file 'menu_7_pineapple.png' should be used between June 1st and June 20th. Note that these numbers are arbitrary (For example, an EndDate of '0231' or February 31st will be accepted, even though it's not a valid date) and can overlap (For example, an end date of '0520' and another start date of '0515' will be accepted). Lines further down will overwrite the ones further up.`n-------------------- DO NOT DELETE --------------------`nDO NOT MODIFY THE CONTENTS OF THIS FILE ABOVE THE LINE THAT SAYS 'DATA STARTS HERE'. If custom backgrounds stops working, reset this file by deleting it.`n-------------------- DATA STARTS HERE --------------------`n105 118 1_anniversary`n128 210 2_newyear`n210 220 3_valentine`n315 325 4_stpatrick`n400 430 5_easter`n501 513 6_cinco`n601 620 7_pineapple`n627 731 8_summer`n810 824 9_paw`n908 930 10_harvest`n1020 1105 11_halloween`n1118 1200 12_thanksgiving`n1210 1231 13_winter", A_WorkingDir "\Launcher\bin\eventbg")
 	}
 	ebgfile := FileOpen(A_WorkingDir "\Launcher\bin\eventbg", "r")
-	Loop 10
+	Loop 12
 		ebgfile.ReadLine()
 	While !ebgfile.AtEOF {
 		ebgs := StrSplit(ebgfile.ReadLine(), A_Space)
